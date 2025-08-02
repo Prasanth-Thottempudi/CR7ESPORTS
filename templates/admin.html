@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin Panel - BGMI Scoreboard</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        padding: 40px;
+        background-color: #121212;
+        color: white;
+      }
+
+      h2 {
+        text-align: center;
+        color: #00ffe0;
+      }
+
+      form {
+        max-width: 450px;
+        margin: 30px auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        background: #1a1a1a;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+      }
+
+      label {
+        font-size: 14px;
+        color: #00ffcc;
+      }
+
+      input,
+      button {
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: none;
+        background: #222;
+        color: white;
+      }
+
+      button {
+        background: #00ffe0;
+        color: #000;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #00ddb0;
+      }
+
+      table {
+        width: 100%;
+        margin-top: 40px;
+        border-collapse: collapse;
+        background-color: #1e1e1e;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        text-align: center;
+        border: 1px solid #333;
+      }
+
+      th {
+        background-color: #00ffe0;
+        color: black;
+      }
+
+      td button {
+        padding: 5px 10px;
+        font-size: 14px;
+        background: red;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      td button:hover {
+        background: #cc0000;
+      }
+
+      .note {
+        text-align: center;
+        font-size: 14px;
+        color: #aaa;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🛠 Add or Update Team</h2>
+
+    <form id="scoreForm">
+      <label>Team Name</label>
+      <input
+        list="teamList"
+        name="Team"
+        id="teamInput"
+        required
+        autocomplete="off"
+      />
+      <datalist id="teamList"></datalist>
+
+      <label>Alive Members</label>
+      <input name="Alive" type="number" min="0" max="4" required />
+
+      <button type="submit">Save</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Alive</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="teamTableBody"></tbody>
+    </table>
+
+    <script>
+      let teamData = [];
+
+      async function loadTeams() {
+        const res = await fetch("/teams");
+        teamData = await res.json();
+
+        const teamList = document.getElementById("teamList");
+        teamList.innerHTML = "";
+        teamData.forEach((team) => {
+          const opt = document.createElement("option");
+          opt.value = team.Team;
+          teamList.appendChild(opt);
+        });
+
+        const tableBody = document.getElementById("teamTableBody");
+        tableBody.innerHTML = "";
+        teamData.forEach((team) => {
+          const row = `
+            <tr>
+              <td>${team.Team}</td>
+              <td>${team.Alive ?? 0}</td>
+              <td><button onclick="deleteTeam('${
+                team.Team
+              }')">Delete</button></td>
+            </tr>`;
+          tableBody.innerHTML += row;
+        });
+      }
+
+      async function deleteTeam(teamName) {
+        const confirmed = confirm(
+          `Are you sure you want to delete team "${teamName}"?`
+        );
+        if (!confirmed) return;
+
+        await fetch("/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ Team: teamName }),
+        });
+
+        loadTeams();
+      }
+
+      document.getElementById("teamInput").addEventListener("change", (e) => {
+        const selected = e.target.value;
+        const found = teamData.find((t) => t.Team === selected);
+        if (found) {
+          document.querySelector('input[name="Alive"]').value =
+            found.Alive ?? 0;
+        } else {
+          document.querySelector('input[name="Alive"]').value = "0";
+        }
+      });
+
+      document
+        .getElementById("scoreForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          const data = Object.fromEntries(formData.entries());
+
+          await fetch("/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+
+          alert(`✅ Score saved for team: ${data.Team}`);
+          this.reset();
+          loadTeams();
+        });
+
+      loadTeams();
+    </script>
+  </body>
+</html>

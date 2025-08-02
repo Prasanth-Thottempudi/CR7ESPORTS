@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Alive Count</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: white;
+      }
+
+      .scoreboard {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.75);
+        border: 2px solid #ffd700;
+        border-radius: 10px;
+        overflow: hidden;
+        z-index: 9999;
+        min-width: 320px;
+        max-width: 400px;
+      }
+
+      h2 {
+        margin: 0;
+        padding: 10px 15px;
+        background: #000;
+        color: #ffd700;
+        font-size: 18px;
+        text-align: center;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: center;
+        font-size: 14px;
+        border-bottom: 1px solid #333;
+      }
+
+      thead {
+        background-color: #000;
+        color: #ffd700;
+      }
+
+      tr:nth-child(even) {
+        background-color: #1a1a1a;
+      }
+
+      .team-name {
+        font-weight: bold;
+        color: #fff;
+      }
+
+      .alive-bar {
+        font-size: 16px;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scoreboard">
+      <h2>🟢 TEAM ALIVE COUNT</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Alive</th>
+          </tr>
+        </thead>
+        <tbody id="teamTableBody"></tbody>
+      </table>
+    </div>
+
+    <script>
+      function getAliveBar(count) {
+        const max = 4;
+        const aliveCount = Math.max(0, Math.min(parseInt(count) || 0, max));
+        const green = "🟢".repeat(aliveCount);
+        const dead = "⚫".repeat(max - aliveCount);
+        return green + dead;
+      }
+
+      async function load() {
+        try {
+          const res = await fetch("/data");
+          if (!res.ok) throw new Error("Failed to fetch /data");
+
+          const data = await res.json();
+          const tbody = document.getElementById("teamTableBody");
+          tbody.innerHTML = "";
+
+          data.forEach((team) => {
+            const teamName = team.Team?.trim() || "Unnamed";
+            const alive = parseInt(team.Alive) || 0;
+
+            const row = `
+              <tr>
+                <td class="team-name">${teamName}</td>
+                <td class="alive-bar">${getAliveBar(alive)}</td>
+              </tr>`;
+            tbody.innerHTML += row;
+          });
+        } catch (err) {
+          console.error("Error loading data:", err);
+        }
+      }
+
+      load();
+      setInterval(load, 5000);
+    </script>
+  </body>
+</html>
