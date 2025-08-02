@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import json
+import os
 
 app = Flask(__name__)
 
@@ -7,6 +8,8 @@ DATA_FILE = 'data.json'
 
 
 def load_data():
+    if not os.path.exists(DATA_FILE):
+        return []
     with open(DATA_FILE, 'r') as f:
         return json.load(f)
 
@@ -18,31 +21,17 @@ def save_data(data):
 
 @app.route('/')
 def scoreboard():
-    return render_template('scoreboard.html')
-
-@app.route('/teams')
-def get_teams():
-    with open('data.json', 'r') as f:
-        data = json.load(f)
-    return jsonify(data)
-
-@app.route('/delete', methods=['POST'])
-def delete_team():
-    data = request.get_json()
-    team_name = data.get("Team", "").strip().lower()
-    if not team_name:
-        return jsonify({"error": "Team name is required"}), 400
-
-    teams = load_data()
-    updated_teams = [team for team in teams if team.get("Team", "").strip().lower() != team_name]
-    save_data(updated_teams)
-
-    return jsonify({"message": f"Team '{team_name}' deleted"}), 200
+    return send_file('scoreboard.html')
 
 
 @app.route('/admin')
 def admin():
-    return render_template('admin.html')
+    return send_file('admin.html')
+
+
+@app.route('/teams')
+def get_teams():
+    return jsonify(load_data())
 
 
 @app.route('/data')
@@ -65,6 +54,20 @@ def update():
 
     save_data(data)
     return jsonify({'status': 'success', 'team': new_team})
+
+
+@app.route('/delete', methods=['POST'])
+def delete_team():
+    data = request.get_json()
+    team_name = data.get("Team", "").strip().lower()
+    if not team_name:
+        return jsonify({"error": "Team name is required"}), 400
+
+    teams = load_data()
+    updated_teams = [team for team in teams if team.get("Team", "").strip().lower() != team_name]
+    save_data(updated_teams)
+
+    return jsonify({"message": f"Team '{team_name}' deleted"}), 200
 
 
 if __name__ == '__main__':
